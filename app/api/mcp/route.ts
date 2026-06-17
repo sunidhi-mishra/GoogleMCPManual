@@ -52,12 +52,19 @@ const handler = createMcpHandler(
           const doc = await docs.documents.create({ requestBody: { title } });
           const documentId = doc.data.documentId;
 
-          // Insert text cleanly using type assertion to bypass strict nested Google API signatures
+          // FIXED HERE: Swapped 'endOfSectionIndex' for the standard 'location: { index: 1 }' layout 
           if (documentId) {
             await (docs.documents.batchUpdate as any)({
               documentId,
               requestBody: {
-                requests: [{ insertText: { endOfSectionIndex: { segmentId: "" }, text: content } }],
+                requests: [
+                  { 
+                    insertText: { 
+                      location: { index: 1 }, 
+                      text: content 
+                    } 
+                  }
+                ],
               },
             });
           }
