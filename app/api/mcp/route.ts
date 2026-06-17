@@ -70,6 +70,47 @@ const handler = createMcpHandler(
         }
       }
     );
+
+    // --- TOOL 3: Send Gmail Email ---
+    server.tool(
+      "send_email",
+      { recipient_email: z.string(), subject: z.string(), body_html: z.string() },
+      async ({ recipient_email, subject, body_html }) => {
+        try {
+          const auth = getGoogleAuth();
+          const gmail = google.gmail({ version: "v1", auth });
+
+          const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
+          const messageParts = [
+            `To: ${recipient_email}`,
+            "Content-Type: text/html; charset=utf-8",
+            "MIME-Version: 1.0",
+            `Subject: ${utf8Subject}`,
+            "",
+            body_html,
+          ];
+          const message = messageParts.join("\n");
+          const encodedMessage = Buffer.from(message)
+            .toString("base64")
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "");
+
+          const response = await gmail.users.messages.send({
+            userId: "me",
+            requestBody: {
+              raw: encodedMessage,
+            },
+          });
+
+          return {
+            content: [{ type: "text", text: `Successfully sent email! ID: ${response.data.id}` }],
+          };
+        } catch (error: any) {
+          return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+        }
+      }
+    );
   },
   {}, // Middleware/Auth overrides (empty for personal setup)
   { basePath: "/api", maxDuration: 60 } // Essential Vercel serverless configurations
